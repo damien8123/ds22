@@ -34,37 +34,59 @@ WHERE	A.category_id = B.category_id
 -- Çalışan adı, soyadı, mağaza adlarını seçin
 
 SELECT	A.first_name, A.last_name, B.store_name
-FROM	sale.staff A
-INNER JOIN sale.store B
-	ON	A.store_id = B.store_id
-;
+FROM	sale.staff AS A   --AS DEMESENDE OLUR YANİ
+INNER JOIN sale.store AS B
+	ON	A.store_id = B.store_id; --BURADA EŞİTLEYECEĞİN SEYLERİN VERİ TİPİNİN, SYTEX LERİN DE EŞİT OLMASI GEREKİR.
 
-
+	--HERHANGİ İKİ TABLO ARASINDA BİR FK VEYA PK YOKSA BİLE BU İKİ TABLO VERİ TİPİ SYNTAX VS UYGUNSA JOIN EDİLEBİLİR.
+	-- FK VEYE PK SADECE CONSANT KISMINDA VERİ TUTARLILIĞI SAĞLAR. SQL TARAFINDA HERHANGİ İKİ TABLO JOIN EDİLEBİLİR.
 
 
 ------ LEFT JOIN ------
 
 -- Hiç sipariş verilmemiş ürünleri listeleyin
 
+SELECT  	*
+FROM	product.product A  
+LEFT JOIN	sale.order_item B ON A.product_id = B.product_id 
+WHERE	order_id IS NULL;
+
+
 SELECT	A.product_id, A.product_name, B.order_id
-FROM	product.product A
-LEFT JOIN	sale.order_item B ON A.product_id = B.product_id
-WHERE	order_id IS NULL
-;
+FROM	product.product A --BURAYA YAZDIĞIN SENİN ANA TABLON, 
+LEFT JOIN	sale.order_item B ON A.product_id = B.product_id   --BURADAKİ İFADE ANA TABLOYA EKLENİR.
+WHERE	order_id IS NULL; --SORGUNUN SONUCUNDA ELDE ETTİĞİN VERİYE BİR KOSUL SUNACAKSAN 
+--ÖR BANA SİPARİŞ VERİLMEMİŞLERİ GETİR DEMEK İÇİN WHERE KULLANIRSIN 
 
 
 -- Ürün bilgilerini stok miktarları ile birlikte listeleyin
 ---beklenen: product tablosunda olup stok bilgisi olmayan ürünleri de görmek.
 
-SELECT	A.product_id, A.product_name, B.*
+SELECT	A.product_id, A.product_name, B.*   --B.* DİYEREK B DEKİ BÜTÜN SUTUNLARI GETİREBİLİRİZ
 FROM	product.product A
 LEFT JOIN product.stock B ON A.product_id = B.product_id
 WHERE	A.product_id > 310
 ;
+--CVP 237 SATIRLIK VERİ GELDİ
+
+--NULL OLMAYAN SUTUNDA Kİ TABLDAN FİLTRELEME YAPARSAN DAHA SAĞLIKLI OLUR. 
+--ÇÜNKÜ YUKARIDA WHERE B. PRODUCT DESEYDİK NULL OLANLARI LKAÇIRACAKTIK. ASAĞIDA UYGULAMASINA BAKABİLİRSİN
+
+SELECT	A.product_id, A.product_name, B.*   --B.* DİYEREK B DEKİ BÜTÜN SUTUNLARI GETİREBİLİRİZ
+FROM	product.product A
+LEFT JOIN product.stock B ON A.product_id = B.product_id
+--WHERE	A.product_id > 310
+--CVP 1667 SATIRLIK VERİ GELDİ.
+
+SELECT	A.product_id, A.product_name, B.*   --B.* DİYEREK B DEKİ BÜTÜN SUTUNLARI GETİREBİLİRİZ
+FROM	product.product A
+LEFT JOIN product.stock B ON A.product_id = B.product_id
+WHERE	B.product_id > 310;
+--159 SATIRLIK VERİ GELDİ. DEMEKKİ B NİN İÇİNDE PRUCT ID SI NULL OLANLAR VAR.
 
 
 
------- RIGHT JOIN ------
+------ RIGHT JOIN ------LEFT İLE SOLDAKİ TABLOYU RİGHT İLE SAĞDAKİ TABLOYU BAZ ALIRIZ
 
 -- Stok miktarları ile ilgili LEFT JOIN ile yaptığınız sorguyu RIGHT JOIN ile yapın
 --bu sefer stock tablosu solda olmalı. çünkü sağdaki tablo temel alınıyor.
@@ -73,10 +95,11 @@ SELECT	B.product_id, B.product_name, A.*
 FROM	product.stock A
 RIGHT JOIN product.product B ON	A.product_id = B.product_id
 WHERE	B.product_id > 310
-;
+; -- RİGHT JOIN  DE RİGHT JOIN DEN SONRAKİ TABLOYU BAZ ALIR.
 
 
 ------ FULL OUTER JOIN ------
+--BU KOMUTTA OLDUĞU GİBİ İKİ TABLOYU KOMPLE BİRLEŞTİRİR.
 
 -- Ürünlerin stok miktarları ve sipariş bilgilerini birlikte listeleyin
 --HER İKİ TABLODAKİ PRODUCT ID LERİ GETİRMEK ÖNEMLİ. 
@@ -91,20 +114,19 @@ ORDER BY A.product_id, B.order_id
 SELECT TOP 100 A.Product_id, B.store_id, B.quantity, C.order_id, C.list_price
 FROM	
 product.product A
-FULL OUTER JOIN 
-product.stock B  ON A.product_id = B.product_id
+FULL OUTER JOIN product.stock B  ON A.product_id = B.product_id
 FULL OUTER JOIN	sale.order_item C ON A.product_id = C.product_id
 ORDER BY B.store_id 
 ;
 
 
 ------ CROSS JOIN ------
-
+--KARTEZYEN CARPIMI SAĞLAR.
 --stock tablosunda olmayıp product tablosunda mevcut olan ürünlerin stock tablosuna tüm storelar için kayıt edilmesi gerekiyor. 
 --stoğu olmadığı için quantity leri 0 olmak zorunda
 --Ve bir product id tüm store' ların stockuna eklenmesi gerektiği için cross join yapmamız gerekiyor.
 
-SELECT	B.store_id, A.product_id, 0 quantity
+SELECT	B.store_id, A.product_id, 0 quantity  ---BURAADAKİ 0 I BİZ BELİRLEDİK. URUN STOĞU YOKSA 0 YAZSIN DİYE..
 FROM	product.product A
 CROSS JOIN sale.store B
 WHERE	A.product_id NOT IN (SELECT product_id FROM product.stock)
